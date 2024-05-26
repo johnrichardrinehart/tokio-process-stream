@@ -85,6 +85,8 @@ use tokio::{
 use tokio_stream::{wrappers::LinesStream, Stream};
 use tokio_util::io::ReaderStream;
 
+use log;
+
 /// [`ProcessStream`] output.
 #[derive(Debug)]
 pub enum Item<Out> {
@@ -190,7 +192,14 @@ where
         if let Some(stderr) = this.stderr {
             match Pin::new(stderr).poll_next(cx) {
                 Poll::Ready(Some(line)) => {
-                    return Poll::Ready(Some(Item::Stderr(line.unwrap())));
+                    match line {
+                        Ok(v) => {
+                            return Poll::Ready(Some(Item::Stderr(v)));
+                        },
+                        Err(e) => {
+                            log::warn!("failure to interpret STDERR: {}", e.to_string());
+                        }
+                    }
                 }
                 Poll::Ready(None) => {
                     *this.stderr = None;
@@ -201,8 +210,14 @@ where
         if let Some(stdout) = this.stdout {
             match Pin::new(stdout).poll_next(cx) {
                 Poll::Ready(Some(line)) => {
-                    return Poll::Ready(Some(Item::Stdout(line.unwrap())));
-                }
+                    match line {
+                        Ok(v) => {
+                            return Poll::Ready(Some(Item::Stdout(v)));
+                        },
+                        Err(e) => {
+                            log::warn!("failure to interpret STDOUT: {}", e.to_string());
+                        }
+                    }                }
                 Poll::Ready(None) => {
                     *this.stdout = None;
                 }
