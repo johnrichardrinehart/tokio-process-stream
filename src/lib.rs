@@ -176,7 +176,7 @@ where
     }
 }
 
-impl<T, Sout, Serr> Stream for ChildStream<Sout, Serr>
+impl<T: Default, Sout, Serr> Stream for ChildStream<Sout, Serr>
 where
     Sout: Stream<Item = io::Result<T>> + std::marker::Unpin,
     Serr: Stream<Item = io::Result<T>> + std::marker::Unpin,
@@ -198,6 +198,7 @@ where
                         },
                         Err(e) => {
                             log::warn!("failure to interpret STDERR: {}", e.to_string());
+                            return Poll::Ready(Some(Item::Stderr(T::default())));
                         }
                     }
                 }
@@ -216,6 +217,7 @@ where
                         },
                         Err(e) => {
                             log::warn!("failure to interpret STDOUT: {}", e.to_string());
+                            return Poll::Ready(Some(Item::Stdout(T::default())));
                         }
                     }                }
                 Poll::Ready(None) => {
